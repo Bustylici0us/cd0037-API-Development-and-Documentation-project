@@ -3,15 +3,17 @@ from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
-
+from dotenv import load_dotenv
+load_dotenv()
 from models import setup_db, Question, Category
-
+from settings import DB_NAME, DB_USER, DB_PASSWORD
 QUESTIONS_PER_PAGE = 10
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
-    database_path = 'postgresql://{}@{}/{}'.format('postgres:postgres', 'localhost:5432', 'trivia')
+    database_name= DB_NAME 
+    database_path = 'postgresql://{}:{}@{}/{}'.format(DB_USER,DB_PASSWORD,'localhost:5432', database_name)
     if test_config is None:
         setup_db(app)
     else:
@@ -49,11 +51,13 @@ def create_app(test_config=None):
         start = (page - 1) * QUESTIONS_PER_PAGE
         end = start + QUESTIONS_PER_PAGE
         questions = Question.query.all()
+        categories = get_categories().get_json()["categories"]
         form_questions = [question.format() for question in questions]
         return jsonify({
             'questions': form_questions[start:end],
             'total_questions': len(form_questions),
-            'success': True
+            'success': True,
+            'categories': categories
         })
     
 
@@ -82,19 +86,25 @@ def create_app(test_config=None):
             'success': True
         })
     
-
-    @app.route('/questions/search', methods=['POST'])
+    @app.route('/search', methods=['POST'])
     def search_questions():
-        search_term = request.json.get('searchTerm','')
-        questions = Question.query.filter(Question.question.ilike(f'%{search_term}%')).all()
-        form_questions = [question.format() for question in questions]
-        return jsonify({
-            'questions': form_questions,
-            'total_questions': len(form_questions),
-            'success': True
-        })
-    
+        data = request.get_json()
+        search_term = data.get('searchTerm')
 
+        if search_term:
+            search_results = Question.query.filter(Question.question.ilike(f'%{search_term}%')).all()
+            formatted_questions = [question.format() for question in search_results]
+
+            return jsonify({
+                'success': True,
+                'questions': formatted_questions,
+                'total_questions': len(formatted_questions),
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Search term is required.'
+            }), 400
     @app.route('/categories/<int:category_id>/questions')
     def get_questions_by_category(category_id):
         questions = Question.query.filter(Question.category == category_id).all()
