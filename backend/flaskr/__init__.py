@@ -48,27 +48,12 @@ def create_app(test_config=None):
         page = request.args.get('page', 1, type=int)
         start = (page - 1) * QUESTIONS_PER_PAGE
         end = start + QUESTIONS_PER_PAGE
-
-        
-        questions = Question.query.join(Category, Question.category == Category.id).add_columns(
-        Question.id, Question.question, Question.answer, Question.difficulty, Question.category, Category.type.label('category_type')
-        ).paginate(page, QUESTIONS_PER_PAGE, False).items
-
-        
-        formatted_questions = [{
-            'id': q.id,
-            'question': q.question,
-            'answer': q.answer,
-            'difficulty': q.difficulty,
-            'category_id': q.category,
-            'category': q.category_type
-        } for q in questions]
-
+        questions = Question.query.all()
+        form_questions = [question.format() for question in questions]
         return jsonify({
-            'questions': formatted_questions,
-            'total_questions': Question.query.count(),
+            'questions': form_questions[start:end],
+            'total_questions': len(form_questions),
             'success': True
-            'categories': category_type
         })
     
 
