@@ -88,7 +88,23 @@ class TriviaTestCase(unittest.TestCase):
         self.assertFalse(data['success'])
         self.assertEqual(data['message'], 'Unprocessable Entity')
 
+    def test_search_questions(self):
+        res = self.client().post('/search', json={'searchTerm': 'Clay'})
+        data = json.loads(res.data)
 
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertIsNotNone(data['questions'])
+        self.assertTrue(data['total_questions'] > 0)
+        print(f"Total questions found: {data['total_questions']}")
+        print(f"Questions: {data['questions']}")
+    def test_search_questions_no_results(self):
+        res = self.client().post('/search', json={'searchTerm': 'akdsfölkadjf'})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data['success'])
+        self.assertEqual(len(data['questions']), 0)
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
